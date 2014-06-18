@@ -28,6 +28,64 @@ inside_volume_bounds(const in vec3 sampling_position)
 }
 
 float
+getTexAtPos(vec3 pos){
+	vec3 obj_to_tex = vec3(1.0) / max_bounds;
+    vec3 sampling_pos_texture_space_f = pos/vec3(volume_dimensions);
+    return texture(volume_texture, sampling_pos_texture_space_f * obj_to_tex).r;
+}
+
+float 
+get_triliniear_sample(vec3 in_sampling_pos)
+{
+	vec3 obj_to_tex = vec3(1.0) / max_bounds;
+    
+    vec3 sampling_pos_array_space_f = in_sampling_pos * vec3(volume_dimensions); // transf texspce -> aryspce  ie: (0.3, 0.5, 1.0) -> (76.5 127.5 255.0)
+
+    // this time we just round the transformed coordinates to their next integer neighbors
+    // i.e. nearest neighbor filtering
+	//ceil - aufrunden
+	//floor abrunden
+    vec3 pos_min = vec3(1.0,2.0,2.0);
+	vec3 pos_max = vec3(1.0);
+	vec3 ratio; // always from lower edge to sampling pos
+	
+	// X: calc next lower and next higher point for X
+	pos_min.x = floor(sampling_pos_array_space_f.x);
+	pos_max.x = ceil(sampling_pos_array_space_f.x);
+	ratio.x = ((sampling_pos_array_space_f.x) - pos_min.x)/(pos_max.x - pos_min.x);
+
+	// Y: calc next lower and next higher point for Y
+	pos_min.y = floor(sampling_pos_array_space_f.y);
+	pos_max.y = ceil(sampling_pos_array_space_f.y);
+	ratio.y = ((sampling_pos_array_space_f.y) - pos_min.y)/(pos_max.y - pos_min.y);
+
+	// Z: calc next lower and next higher point for Z
+	pos_min.z = floor(sampling_pos_array_space_f.z);
+	pos_max.z = ceil(sampling_pos_array_space_f.z);
+	ratio.z = ((sampling_pos_array_space_f.z) - pos_min.z)/(pos_max.z - pos_min.z);
+
+	float tex00 = (getTexAtPos( vec3(pos_min.x,pos_min.y,pos_min.z) )*(1-ratio.x))+
+				  (getTexAtPos( vec3(pos_max.x,pos_min.y,pos_min.z) )*ratio.x);
+
+    float tex10 = (getTexAtPos(vec3(pos_min.x,pos_max.y,pos_min.z))*(1-ratio.x))+
+				  (getTexAtPos(vec3(pos_max.x,pos_max.y,pos_min.z))*ratio.x);
+
+    float tex01 = (getTexAtPos(vec3(pos_min.x,pos_min.y,pos_max.z))*(1-ratio.x))+
+				  (getTexAtPos(vec3(pos_max.x,pos_min.y,pos_max.z))*ratio.x);
+
+	float tex11 = (getTexAtPos(vec3(pos_min.x,pos_max.y,pos_max.z))*(1-ratio.x))+
+				  (getTexAtPos(vec3(pos_max.x,pos_max.y,pos_max.z))*ratio.x);
+
+	float tex0 = (tex00 * (1-ratio.y)) + (tex10 * ratio.y);
+	float tex1 = (tex01 * (1-ratio.y)) + (tex11 * ratio.y);
+	
+	float resultTex = (tex0 * (1-ratio.z)) + (tex1 * ratio.z);
+
+	return resultTex;
+}
+
+
+float
 get_nearest_neighbour_sample(vec3 in_sampling_pos){
     
     vec3 obj_to_tex                 = vec3(1.0) / max_bounds;
@@ -43,21 +101,22 @@ get_nearest_neighbour_sample(vec3 in_sampling_pos){
     interpol_sampling_pos_f.x = round(sampling_pos_array_space_f.x);
     interpol_sampling_pos_f.y = round(sampling_pos_array_space_f.y);
     interpol_sampling_pos_f.z = round(sampling_pos_array_space_f.z);
-        
 
     /// transform from array space to texture space
     vec3 sampling_pos_texture_space_f = interpol_sampling_pos_f/vec3(volume_dimensions);
 
     // access the volume data
-    return texture(volume_texture, sampling_pos_texture_space_f * obj_to_tex).r;
+    return texture(volume_texture, sampling_pos_texture_space_f * obj_to_tex.r);
 }
+
+
 
 float
 get_sample_data(vec3 in_sampling_pos){
 #if 1
-    return get_nearest_neighbour_sample(in_sampling_pos);
-#else
     return get_triliniear_sample(in_sampling_pos);
+#else
+	return get_nearest_neighbour_sample(in_sampling_pos);
 #endif
 
 }

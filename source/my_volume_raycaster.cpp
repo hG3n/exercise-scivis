@@ -23,7 +23,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/norm.hpp>
 
-///PROJECT INCLUDES
+///PROJECT INCLUDES 
 #include <volume_loader_raw.hpp>
 #include <transfer_function.hpp>
 #include <utils.hpp>
