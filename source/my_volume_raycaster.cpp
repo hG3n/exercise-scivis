@@ -32,6 +32,8 @@
 const std::string g_file_vertex_shader("../../../source/shader/volume.vert");
 const std::string g_file_fragment_shader("../../../source/shader/volume.frag");
 
+// cmake done
+
 GLuint loadShaders(std::string const& vs, std::string const& fs)
 {
   std::string v = readFile(vs);
