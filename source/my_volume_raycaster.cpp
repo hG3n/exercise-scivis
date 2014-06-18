@@ -134,6 +134,8 @@ int main(int argc, char* argv[])
   //  - unsigned char or float - data value     (0.0 .. 1.0) or (0..255)
   //  - vec4f         - color and alpha value   (0.0 .. 1.0) per channel
   transfer_fun.add(0.0f, glm::vec4(0.0, 0.0, 0.0, 0.0));
+  transfer_fun.add(0.1f, glm::vec4(1.0, 0.0, 0.5, 0.5));
+  transfer_fun.add(0.1f, glm::vec4(1.0, 0.0, 0.5, 0.5));
   transfer_fun.add(1.0f, glm::vec4(1.0, 1.0, 1.0, 1.0));
    
 

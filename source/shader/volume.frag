@@ -88,7 +88,7 @@ get_triliniear_sample(vec3 in_sampling_pos)
 float
 get_nearest_neighbour_sample(vec3 in_sampling_pos){
     
-    vec3 obj_to_tex                 = vec3(1.0) / max_bounds;
+    vec3 obj_to_tex  = vec3(1.0) / max_bounds;
     
     /// transform from texture space to array space
     /// ie: (0.3, 0.5, 1.0) -> (76.5 127.5 255.0)
@@ -114,9 +114,11 @@ get_nearest_neighbour_sample(vec3 in_sampling_pos){
 float
 get_sample_data(vec3 in_sampling_pos){
 #if 1
-    return get_triliniear_sample(in_sampling_pos);
+	vec3 obj_to_tex  = vec3(1.0) / max_bounds;
+	return texture(volume_texture,in_sampling_pos*obj_to_tex);
+	//return get_nearest_neighbour_sample(in_sampling_pos);
 #else
-	return get_nearest_neighbour_sample(in_sampling_pos);
+	return get_triliniear_sample(in_sampling_pos);
 #endif
 
 }
@@ -170,10 +172,12 @@ void main()
     // the traversal loop,
     // termination when the sampling position is outside volume boundarys
     // another termination condition for early ray termination is added
+	int counter = 0;
     while (inside_volume && dst.a < 0.95)
     {      
         // get sample
         float s = get_sample_data(sampling_pos);
+		counter ++;
 
         // garbage code
         dst = vec4(1.0, 0.0, 0.0, 1.0);
