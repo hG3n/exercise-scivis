@@ -61,7 +61,7 @@ glm::vec3   g_light_color                   = glm::vec3(1.0f, 1.0f, 1.0f);
 //glm::vec3   g_background_color = glm::vec3(1.0f, 1.0f, 1.0f); //white
 glm::vec3   g_background_color = glm::vec3(0.0f, 0.0f, 0.0f);   //black
 
-glm::ivec2  g_window_res                    = glm::ivec2(600, 600);
+glm::ivec2  g_window_res                    = glm::ivec2(1100, 900);
 
 struct Manipulator
 {
@@ -133,10 +133,22 @@ int main(int argc, char* argv[])
   // the add_stop method takes:
   //  - unsigned char or float - data value     (0.0 .. 1.0) or (0..255)
   //  - vec4f         - color and alpha value   (0.0 .. 1.0) per channel
-  transfer_fun.add(0.0f, glm::vec4(0.0, 0.0, 0.0, 0.0));
-  transfer_fun.add(0.1f, glm::vec4(1.0, 0.0, 0.5, 0.5));
-  transfer_fun.add(0.1f, glm::vec4(1.0, 0.0, 0.5, 0.5));
-  transfer_fun.add(1.0f, glm::vec4(1.0, 1.0, 1.0, 1.0));
+  transfer_fun.add(0.0f, glm::vec4(0.05, 0.05, 0.05, 0.0));
+  // low density
+  transfer_fun.add(0.2f, glm::vec4(0.09, 0.1, 0.1, 0.000));
+  transfer_fun.add(0.25f, glm::vec4(0.7, 0.0, 0.0, 0.05));
+  transfer_fun.add(0.4f, glm::vec4(0.09, 0.1, 0.1,0.000));
+  // middle density
+  transfer_fun.add(0.53f, glm::vec4(0.09, 0.1, 0.1, 0.000));
+  transfer_fun.add(0.6f, glm::vec4(0.05, 0.65, 0.5, 0.09));
+  transfer_fun.add(0.64f, glm::vec4(0.05, 0.1, 0.1, 0.000));
+
+  // high density
+  transfer_fun.add(0.8f, glm::vec4(0.09, 0.1, 0.1, 0.000));
+  transfer_fun.add(0.87f, glm::vec4(1.0, 0.95, 0.2, 0.46));
+  transfer_fun.add(0.95f, glm::vec4(0.09, 0.1, 0.1, 0.000));
+
+  transfer_fun.add(1.0f, glm::vec4(0.0, 0.0, 0.0, 0.0));
    
 
   ///NOTHING TODO UNTIL HERE-------------------------------------------------------------------------------

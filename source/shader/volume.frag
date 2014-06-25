@@ -27,6 +27,7 @@ inside_volume_bounds(const in vec3 sampling_position)
             && all(lessThanEqual(sampling_position, max_bounds)));
 }
 
+// Look up function to get tex at a specific pos
 float
 getTexAtPos(vec3 pos){
 	vec3 obj_to_tex = vec3(1.0) / max_bounds;
@@ -109,8 +110,6 @@ get_nearest_neighbour_sample(vec3 in_sampling_pos){
     return texture(volume_texture, sampling_pos_texture_space_f * obj_to_tex.r);
 }
 
-
-
 float
 get_sample_data(vec3 in_sampling_pos){
 #if 1
@@ -123,7 +122,7 @@ get_sample_data(vec3 in_sampling_pos){
 
 }
 
-#define AUFGABE 31  // 31 32 33 4 5
+#define AUFGABE 33  // 31 32 33 4 5
 void main()
 {
     /// One step trough the volume
@@ -168,39 +167,69 @@ void main()
 #endif 
     
 #if AUFGABE == 32
-    
+     vec4 all_col = vec4(0.0, 0.0, 0.0, 0.0);
     // the traversal loop,
     // termination when the sampling position is outside volume boundarys
     // another termination condition for early ray termination is added
 	int counter = 0;
-    while (inside_volume && dst.a < 0.95)
+    while (inside_volume)
     {      
         // get sample
         float s = get_sample_data(sampling_pos);
-		counter ++;
-
-        // garbage code
-        dst = vec4(1.0, 0.0, 0.0, 1.0);
+                
+        // apply the transfer functions to retrieve color and opacity
+        vec4 color = texture(transfer_texture, vec2(s, s));
+        
+        // this is the example for maximum intensity projection
+		all_col.r = all_col.r + color.r;
+		all_col.g = all_col.g + color.g;
+		all_col.b = all_col.b + color.b;
+		all_col.a = all_col.a + color.a;
         
         // increment the ray sampling position
         sampling_pos  += ray_increment;
 
         // update the loop termination condition
         inside_volume  = inside_volume_bounds(sampling_pos);
+		counter ++;
     }
+	if (counter > 0){
+		dst.r = all_col.r / counter;
+		dst.g = all_col.g / counter;
+		dst.b = all_col.b / counter;
+		dst.a = all_col.a / counter;
+	}
+	else if (counter == 0){
+		dst.a = 0;
+	}
 #endif
     
 #if AUFGABE == 33
+
+	float trans = 1.0;
+	vec3 intensity = vec3(0.0, 0.0, 0.0);
+
     // the traversal loop,
     // termination when the sampling position is outside volume boundarys
     // another termination condition for early ray termination is added
-    while (inside_volume && dst.a < 0.95)
+    while (inside_volume && trans > 0.005)
     {
-        // get sample
         float s = get_sample_data(sampling_pos);
+                
+        // apply the transfer functions to retrieve color and opacity
+        vec4 color = texture(transfer_texture, vec2(s, s));
 
-        // garbage code
-        dst = vec4(0.0, 1.0, 0.0, 1.0);
+		trans = trans * (1.0-color.a);
+
+		vec3 intens = vec3(0.0);
+
+		intens.r = color.r * color.a;
+		intens.g = color.g * color.a;
+		intens.b = color.b * color.a;
+
+		intensity.r = intensity.r + intens.r * trans;
+		intensity.g = intensity.g + intens.g * trans;
+		intensity.b = intensity.b + intens.b * trans;
 
         // increment the ray sampling position
         sampling_pos += ray_increment;
@@ -208,6 +237,8 @@ void main()
         // update the loop termination condition
         inside_volume = inside_volume_bounds(sampling_pos);
     }
+	dst.rgb = intensity.rgb;
+	dst.a = 1.0-trans ;
 #endif 
 
 #if AUFGABE == 4
