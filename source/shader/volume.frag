@@ -122,17 +122,58 @@ get_sample_data(vec3 in_sampling_pos){
 
 }
 
-#define AUFGABE 33  // 31 32 33 4 5
+float get_density(vec3 pos){
+	vec3 obj_to_tex  = vec3(1.0) / max_bounds;
+	return texture(volume_texture,pos*obj_to_tex);
+}
+
+
+vec3 get_gradient(vec3 in_sampling_pos){
+	float k = 0.01;
+
+	float temp_x_plus  = get_density(vec3(in_sampling_pos.x+k,
+										in_sampling_pos.y,
+										in_sampling_pos.z));
+	float temp_x_minus = get_density(vec3(in_sampling_pos.x-k,
+										in_sampling_pos.y,
+										in_sampling_pos.z));
+	float temp_y_plus  = get_density(vec3(in_sampling_pos.x,
+										in_sampling_pos.y+k,
+										in_sampling_pos.z));
+	float temp_y_minus = get_density(vec3(in_sampling_pos.x,
+										in_sampling_pos.y-k,
+										in_sampling_pos.z));
+	float temp_z_plus  = get_density(vec3(in_sampling_pos.x,
+										in_sampling_pos.y,
+										in_sampling_pos.z+k));
+	float temp_z_minus = get_density(vec3(in_sampling_pos.x,
+										in_sampling_pos.y,
+										in_sampling_pos.z-k));
+
+	float gradient_x  = (temp_x_plus - temp_x_minus);
+	//if (gradient_x < 0.0)
+	//	gradient_x = (gradient_x +1)*2;
+	
+	float gradient_y  = (temp_y_plus - temp_y_minus);
+	//if (gradient_y < 0.0)
+	//	gradient_y = (gradient_y +1)*2;
+	float gradient_z  = (temp_z_plus - temp_z_minus);
+	//if (gradient_z < 0.0)
+	//	gradient_z = (gradient_z +1)*2;
+	vec3 normal = vec3(gradient_x,gradient_y,gradient_z);
+	normal = normalize(normal);
+	return normal;
+}
+
+#define AUFGABE 5  // 31 32 33 4 5
 void main()
 {
     /// One step trough the volume
     vec3 ray_increment      = normalize(ray_entry_position - camera_location) * sampling_distance;
     /// Position in Volume
     vec3 sampling_pos       = ray_entry_position + ray_increment; // test, increment just to be sure we are in the volume
-
     /// Init color of fragment
     vec4 dst = vec4(0.0, 0.0, 0.0, 0.0);
-
     /// check if we are inside volume
     bool inside_volume = inside_volume_bounds(sampling_pos);
 
@@ -168,9 +209,7 @@ void main()
     
 #if AUFGABE == 32
      vec4 all_col = vec4(0.0, 0.0, 0.0, 0.0);
-    // the traversal loop,
-    // termination when the sampling position is outside volume boundarys
-    // another termination condition for early ray termination is added
+	// Average traversal
 	int counter = 0;
     while (inside_volume)
     {      
@@ -205,7 +244,43 @@ void main()
 #endif
     
 #if AUFGABE == 33
+	// front to back traversal
+	float trans = 1.0;
+	vec3 intensity = vec3(0.0, 0.0, 0.0);
 
+    // the traversal loop,
+    // termination when the sampling position is outside volume boundarys
+    // another termination condition for early ray termination is added
+    while (inside_volume && trans > 0.005)
+    {
+        float s = get_sample_data(sampling_pos);
+                
+        // apply the transfer functions to retrieve color and opacity
+        vec4 color = texture(transfer_texture, vec2(s, s));
+
+		trans = trans * (1.0-color.a);
+
+		vec3 intens = vec3(0.0);
+
+		intens.r = color.r * color.a;
+		intens.g = color.g * color.a;
+		intens.b = color.b * color.a;
+
+		intensity.r = intensity.r + intens.r * trans;
+		intensity.g = intensity.g + intens.g * trans;
+		intensity.b = intensity.b + intens.b * trans;
+
+        // increment the ray sampling position
+        sampling_pos += ray_increment;
+
+        // update the loop termination condition
+        inside_volume = inside_volume_bounds(sampling_pos);
+    }
+	dst.rgb = intensity.rgb;
+	dst.a = 1.0-trans ;
+#endif 
+#if AUFGABE == 34
+	// back to front traversal
 	float trans = 1.0;
 	vec3 intensity = vec3(0.0, 0.0, 0.0);
 
@@ -242,45 +317,81 @@ void main()
 #endif 
 
 #if AUFGABE == 4
-    // the traversal loop,
-    // termination when the sampling position is outside volume boundarys
-    // another termination condition for early ray termination is added
-    while (inside_volume && dst.a < 0.95)
+    // front to back traversal
+	vec3 ambient_col = vec3(0.1,0.1,0.1);
+	float trans = 1.0;
+	vec3 diff_col = vec3(0.0, 0.0, 0.0);
+	vec3 pixelcolor = vec3(0.0, 0.0, 0.0);
+    while (inside_volume && trans > 0.0001)
     {
-        // get sample
-        float s = get_sample_data(sampling_pos);
+		float s = get_sample_data(sampling_pos);
+		vec3 intens = vec3(0.0); 
 
-        // garbage code
-        dst = vec4(0.0, 0.0, 1.0, 1.0);
+		vec4 color = texture(transfer_texture, vec2(s, s));
+		vec3 normal = get_gradient(sampling_pos);
+		trans = trans * (1.0-color.a);
+		
+		intens.r = color.r * color.a;
+		intens.g = color.g * color.a;
+		intens.b = color.b * color.a;
 
-        // increment the ray sampling position
+		diff_col.r = diff_col.r + intens.r * trans;
+		diff_col.g = diff_col.g + intens.g * trans;
+		diff_col.b = diff_col.b + intens.b * trans;
+
+		vec3 light_vec = normalize(light_position - sampling_pos); // from point to light p-> l
+		//vec3 light_vec = normalize(sampling_pos-light_position);
+		vec3 camera_vec = normalize(camera_location - sampling_pos); // from p -> cam
+		vec3 light_view_angle = normalize(light_vec + normalize(-camera_vec));
+
+		float diff_intens = max(dot(normal,light_vec), 1.0);
+		float spec_intens = pow(max(dot(normal,light_view_angle),0.0),14.0);
+
+		pixelcolor =  (diff_intens * diff_col) + (spec_intens * light_color);
+		//pixelcolor = (diff_intens * diff_col);
+		//pixelcolor = diff_col;
         sampling_pos += ray_increment;
-
-        // update the loop termination condition
         inside_volume = inside_volume_bounds(sampling_pos);
     }
+	dst.rgb = pixelcolor.rgb;
+	dst.a = 1.0-trans ;
 #endif 
 
 #if AUFGABE == 5
-
-    // the traversal loop,
-    // termination when the sampling position is outside volume boundarys
-    // another termination condition for early ray termination is added
-    while (inside_volume && dst.a < 0.95)
+	vec4 col = vec4(0.0,0.0,0.0,1.0);
+	vec3 pixelcolor = vec3(0.0, 0.0, 0.0);
+	float threshold = 0.65;
+	float density = 0.0;
+	float epsilon = 0.5;
+	
+    while (inside_volume && (density != (threshold-epsilon)))
     {
-        // get sample
-        float s = get_sample_data(sampling_pos);
+		float s = get_sample_data(sampling_pos);
+		density = s;
+		if (density == (threshold - epsilon)){
+			col = texture(transfer_texture, vec2(s, s));
+			//vec3 normal = get_gradient(sampling_pos);
 
-        // garbage code
-        dst = vec4(1.0, 0.0, 1.0, 1.0);
+			//vec3 light_vec = normalize(light_position - sampling_pos); // from point to light p-> l
+			//vec3 light_vec = normalize(sampling_pos-light_position);
+			//vec3 camera_vec = normalize(camera_location - sampling_pos); // from p -> cam
+			//vec3 light_view_angle = normalize(light_vec + normalize(-camera_vec));
 
-        // increment the ray sampling position
-        sampling_pos += ray_increment;
+			//float diff_intens = max(dot(normal,light_vec), 0.01);
+			//float spec_intens = pow(max(dot(normal,light_view_angle),0.0),25.0);
 
-        // update the loop termination condition
-        inside_volume = inside_volume_bounds(sampling_pos);
+			//pixelcolor =  (diff_intens * col.rgb) + (spec_intens * light_color);
+			pixelcolor.r = max(pixelcolor.r,col.r);
+			pixelcolor.g = max(pixelcolor.g,col.g);
+			pixelcolor.b = max(pixelcolor.b,col.b);
+			//pixelcolor.rgb = col.rgb;
+			
+		}
+		sampling_pos += ray_increment;
+		inside_volume = inside_volume_bounds(sampling_pos);
     }
-    
+	dst.rgb = pixelcolor.rgb;
+	dst.a = 0.5;
 #endif 
 
     // return the calculated color value
