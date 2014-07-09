@@ -127,7 +127,6 @@ float get_density(vec3 pos){
 	return texture(volume_texture,pos*obj_to_tex);
 }
 
-
 vec3 get_gradient(vec3 in_sampling_pos){
 	float k = 0.01;
 
@@ -165,7 +164,20 @@ vec3 get_gradient(vec3 in_sampling_pos){
 	return normal;
 }
 
-#define AUFGABE 5  // 31 32 33 4 5
+/*
+vec3 binary_search(vec3 old_pos, vec3 pos, float threshold, float epsi){
+	vec3 temp_sample_point = (old_pos + pos)/2;
+	float temp_dens = get_sample_data(temp_sample_point);
+	if (temp_dens <= (threshold + epsi) &&  temp_dens >= (threshold - epsi)){
+		return temp_sample_point;
+	}else if (temp_dens < (threshold - epsi)){
+		temp_sample_point = binary_search(old_pos, temp_sample_point,threshold, epsi);
+	}else if (temo_dens > (treshold + epsi)){
+		temp_sample_point = binary_search(temp_sample_point, pos,threshold,epsi);
+	}
+*/
+
+#define AUFGABE 6  // 31 32 33 4 5
 void main()
 {
     /// One step trough the volume
@@ -342,9 +354,9 @@ void main()
 		vec3 light_vec = normalize(light_position - sampling_pos); // from point to light p-> l
 		//vec3 light_vec = normalize(sampling_pos-light_position);
 		vec3 camera_vec = normalize(camera_location - sampling_pos); // from p -> cam
-		vec3 light_view_angle = normalize(light_vec + normalize(camera_vec));
+		vec3 light_view_angle = normalize(light_vec + normalize(-camera_vec));
 
-		float diff_intens = max(dot(normal,light_vec), 1.0);
+		float diff_intens = max(dot(normal,light_vec), 0.0);
 		float spec_intens = pow(max(dot(normal,light_view_angle),0.0),14.0);
 
 		pixelcolor =  (diff_intens * diff_col) + (spec_intens * light_color);
@@ -362,31 +374,94 @@ void main()
 	vec3 pixelcolor = vec3(0.0, 0.0, 0.0);
 	vec3 ambient_col = vec3(0.1,0.1,0.1);
 	float density = 0.0;
-	float epsilon = 0.02;
-    while (inside_volume && (density < (iso_value+epsilon)))
+	float epsilon = 0.05;
+    while (inside_volume && (density < iso_value + epsilon)  )
     {
 		float s = get_sample_data(sampling_pos);
-		density = s;
-		if (density < (iso_value + epsilon) && (density > iso_value - epsilon)){
+		density = s; 
+		if (density < (iso_value + epsilon) && (density > iso_value)){
+
 			col = texture(transfer_texture, vec2(s, s));
 			vec3 normal = get_gradient(sampling_pos);
 
 			vec3 light_vec = normalize(light_position - sampling_pos); // from point to light p-> l
 			//vec3 light_vec = normalize(sampling_pos-light_position);
 			vec3 camera_vec = normalize(camera_location - sampling_pos); // from p -> cam
-			vec3 light_view_angle = normalize(light_vec + normalize(camera_vec));
+			vec3 light_view_angle = normalize(light_vec + normalize(-camera_vec));
 
-			float diff_intens = max(dot(normal,light_vec), 0.01);
+			float diff_intens = max(dot(normal,light_vec),0.00);
 			float spec_intens = pow(max(dot(normal,light_view_angle),0.0),25.0);
 
-			pixelcolor =  (diff_intens * col.rgb) + (spec_intens * light_color);
-			//pixelcolor.r = max(pixelcolor.r,col.r);
-			//pixelcolor.g = max(pixelcolor.g,col.g);
-			//pixelcolor.b = max(pixelcolor.b,col.b);
-			//pixelcolor.rgb = vec3(1.0,1.0,1.0);
+			pixelcolor = (diff_intens * col.rgb) + (spec_intens * light_color);
 			
 		}
 		sampling_pos += ray_increment;
+		inside_volume = inside_volume_bounds(sampling_pos);
+    }
+	dst.rgb = pixelcolor.rgb;
+	dst.a = 1.0;
+#endif 
+
+#if AUFGABE == 6
+	vec4 col = vec4(0.0,0.0,0.0,1.0);
+	vec3 pixelcolor = vec3(0.0, 0.0, 0.0);
+	vec3 ambient_col = vec3(0.1,0.1,0.1);
+	vec3 last_sample_point = vec3(0.0, 0.0, 0.0);
+	vec3 exact_point = vec3(0.0, 0.0, 0.0);
+	float last_density = 0.0;
+	float density = 0.0;
+	float epsilon = 0.05;
+	bool not_found = true;
+
+    while (inside_volume && density < iso_value + epsilon)
+    {
+
+		float s = get_sample_data(sampling_pos);
+		int counter = 0;
+		density = s; 
+		vec3 leftp = last_sample_point;
+		vec3 rightp = sampling_pos;
+		vec3 midp = (leftp + rightp)/2;
+		while (not_found && counter < 5) {
+			leftp = last_sample_point;
+			rightp = sampling_pos;
+			midp = (leftp + rightp)/2;
+			float temp_dens = get_sample_data(midp);
+			if (temp_dens < iso_value - epsilon){
+				leftp = midp;
+				counter++;
+			} else if (temp_dens > iso_value+ epsilon){
+				rightp = midp;
+				counter++;
+			} else if (temp_dens >= iso_value - epsilon && temp_dens <= iso_value + epsilon){ 
+				exact_point = midp;
+				not_found = false;
+			} else {
+				counter++;
+			}
+		}
+		if (!not_found){
+			col = texture(transfer_texture, vec2(s, s));
+			vec3 normal = get_gradient(exact_point);
+
+			vec3 light_vec = normalize(light_position - exact_point); // from point to light p-> l
+			vec3 camera_vec = normalize(camera_location - exact_point); // from p -> cam
+			vec3 light_view_angle = normalize(light_vec + normalize(-camera_vec));
+
+			float diff_intens = max(dot(normal,light_vec),0.00);
+			float spec_intens = pow(max(dot(normal,light_view_angle),0.0),25.0);
+
+			pixelcolor = (diff_intens * col.rgb) + (spec_intens * light_color);
+		}
+
+		last_sample_point = sampling_pos;
+		last_density = density;
+		if (density <= 0.1){
+			sampling_pos += (ray_increment*5);
+		}
+		if (density > 0.1){
+			sampling_pos += (ray_increment);
+		}
 		inside_volume = inside_volume_bounds(sampling_pos);
     }
 	dst.rgb = pixelcolor.rgb;

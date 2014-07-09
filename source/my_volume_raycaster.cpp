@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
   //  - vec4f         - color and alpha value   (0.0 .. 1.0) per channel
   transfer_fun.add(0.0f, glm::vec4(0.05, 0.05, 0.05, 0.0));
   // low density
-  transfer_fun.add(0.2f, glm::vec4(0.09, 0.1, 0.1, 0.000));
+  transfer_fun.add(0.05f, glm::vec4(0.09, 0.1, 0.1, 0.000));
   transfer_fun.add(0.25f, glm::vec4(0.4, 0.8, 0.7, 1.0));
   transfer_fun.add(0.3f, glm::vec4(0.09, 0.1, 0.1,1.000));
   // 
@@ -146,9 +146,9 @@ int main(int argc, char* argv[])
   transfer_fun.add(0.53f, glm::vec4(0.09, 0.1, 0.1, 0.000));
   transfer_fun.add(0.60f, glm::vec4(0.35, 0.55, 0.31, 0.02));
   transfer_fun.add(0.62f, glm::vec4(0.35, 0.55, 0.31, 0.02));
-  transfer_fun.add(0.74f, glm::vec4(0.05, 0.1, 0.1, 0.000));
+  transfer_fun.add(0.74f, glm::vec4(0.05, 0.3, 0.3, 0.000));
   // high density
-  transfer_fun.add(0.8f, glm::vec4(0.09, 0.1, 0.1, 0.000));
+  transfer_fun.add(0.8f, glm::vec4(0.09, 0.2, 0.2, 0.000));
   transfer_fun.add(0.87f, glm::vec4(1.0, 0.95, 0.2, 0.46));
   transfer_fun.add(0.95f, glm::vec4(0.09, 0.1, 0.1, 0.000));
 
