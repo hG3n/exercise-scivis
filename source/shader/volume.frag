@@ -342,7 +342,7 @@ void main()
 		vec3 light_vec = normalize(light_position - sampling_pos); // from point to light p-> l
 		//vec3 light_vec = normalize(sampling_pos-light_position);
 		vec3 camera_vec = normalize(camera_location - sampling_pos); // from p -> cam
-		vec3 light_view_angle = normalize(light_vec + normalize(-camera_vec));
+		vec3 light_view_angle = normalize(light_vec + normalize(camera_vec));
 
 		float diff_intens = max(dot(normal,light_vec), 1.0);
 		float spec_intens = pow(max(dot(normal,light_view_angle),0.0),14.0);
@@ -360,38 +360,37 @@ void main()
 #if AUFGABE == 5
 	vec4 col = vec4(0.0,0.0,0.0,1.0);
 	vec3 pixelcolor = vec3(0.0, 0.0, 0.0);
-	float threshold = 0.65;
+	vec3 ambient_col = vec3(0.1,0.1,0.1);
 	float density = 0.0;
-	float epsilon = 0.5;
-	
-    while (inside_volume && (density != (threshold-epsilon)))
+	float epsilon = 0.02;
+    while (inside_volume && (density < (iso_value+epsilon)))
     {
 		float s = get_sample_data(sampling_pos);
 		density = s;
-		if (density == (threshold - epsilon)){
+		if (density < (iso_value + epsilon) && (density > iso_value - epsilon)){
 			col = texture(transfer_texture, vec2(s, s));
-			//vec3 normal = get_gradient(sampling_pos);
+			vec3 normal = get_gradient(sampling_pos);
 
-			//vec3 light_vec = normalize(light_position - sampling_pos); // from point to light p-> l
+			vec3 light_vec = normalize(light_position - sampling_pos); // from point to light p-> l
 			//vec3 light_vec = normalize(sampling_pos-light_position);
-			//vec3 camera_vec = normalize(camera_location - sampling_pos); // from p -> cam
-			//vec3 light_view_angle = normalize(light_vec + normalize(-camera_vec));
+			vec3 camera_vec = normalize(camera_location - sampling_pos); // from p -> cam
+			vec3 light_view_angle = normalize(light_vec + normalize(camera_vec));
 
-			//float diff_intens = max(dot(normal,light_vec), 0.01);
-			//float spec_intens = pow(max(dot(normal,light_view_angle),0.0),25.0);
+			float diff_intens = max(dot(normal,light_vec), 0.01);
+			float spec_intens = pow(max(dot(normal,light_view_angle),0.0),25.0);
 
-			//pixelcolor =  (diff_intens * col.rgb) + (spec_intens * light_color);
-			pixelcolor.r = max(pixelcolor.r,col.r);
-			pixelcolor.g = max(pixelcolor.g,col.g);
-			pixelcolor.b = max(pixelcolor.b,col.b);
-			//pixelcolor.rgb = col.rgb;
+			pixelcolor =  (diff_intens * col.rgb) + (spec_intens * light_color);
+			//pixelcolor.r = max(pixelcolor.r,col.r);
+			//pixelcolor.g = max(pixelcolor.g,col.g);
+			//pixelcolor.b = max(pixelcolor.b,col.b);
+			//pixelcolor.rgb = vec3(1.0,1.0,1.0);
 			
 		}
 		sampling_pos += ray_increment;
 		inside_volume = inside_volume_bounds(sampling_pos);
     }
 	dst.rgb = pixelcolor.rgb;
-	dst.a = 0.5;
+	dst.a = 1.0;
 #endif 
 
     // return the calculated color value

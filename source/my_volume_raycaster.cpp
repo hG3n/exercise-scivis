@@ -61,7 +61,7 @@ glm::vec3   g_light_color                   = glm::vec3(1.0f, 0.0f, 0.0f);
 //glm::vec3   g_background_color = glm::vec3(1.0f, 1.0f, 1.0f); //white
 glm::vec3   g_background_color = glm::vec3(0.0f, 0.0f, 0.0f);   //black
 
-glm::ivec2  g_window_res                    = glm::ivec2(600, 600);
+glm::ivec2  g_window_res                    = glm::ivec2(1000, 600);
 
 struct Manipulator
 {
